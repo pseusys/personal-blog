@@ -1,7 +1,7 @@
 # A custom NetworkManager VPN plugin 101
 
 Have you decided to write your own VPN, just like me?
-Or would you just like to integrate your favourite solution with the convenient user interface of Linux network manager?
+Or would you just like to integrate your favorite solution with the convenient user interface of Linux network manager?
 Anyway, you came to the right place!
 
 [NetworkManager](https://networkmanager.dev/) is a great open source tool, that is already pre-installed on many Linux desktop distributions ([Ubuntu](https://ubuntu.com/), [Fedora](https://fedoraproject.org/), [Arch](https://archlinux.org/) and [others](https://wiki.archlinux.org/title/NetworkManager)).
@@ -13,13 +13,13 @@ Still, there's one big drawback: since network manager developers apparently inv
 The only source of information about the plugin interface is the network manager [VPN support page](https://networkmanager.dev/docs/vpn/) where existing plugin implementations are listed, but going through their code is a tedious and time-consuming task, especially because the code is not usually commented.
 Good news: I made it so you don't, and I'm going to share what I found.
 
-### Credits
+## Credits
 
 This guide is based on reading and comparing the source code of multiple existing NetworkManager VPN plugin implementations, including [NetworkManager-openvpn](https://gitlab.gnome.org/GNOME/NetworkManager-openvpn), [NetworkManager-openconnect](https://gitlab.gnome.org/GNOME/NetworkManager-openconnect) and [NetworkManager-fortisslvpn](https://gitlab.gnome.org/GNOME/NetworkManager-fortisslvpn).
 None of this would have been possible without their open source code.
 I am also grateful to the NetworkManager developers for their [API reference documentation](https://networkmanager.dev/docs/api/latest/) and [libnm reference manual](https://networkmanager.dev/docs/libnm/latest/).
 
-### Goals and non-goals
+## Goals and non-goals
 
 Here, I will attempt to implement the most simple NetworkManager plugin, compliant with all the tools that make use of the NetworkManager.
 It should provide smooth user experience in both GUI and CLI.
@@ -35,7 +35,7 @@ Many NetworkManager plugins prefer launching a standalone VPN executable instead
 
 That's why my plugin is truly minimal and contains nothing more than basically receiving VPN configuration file and passing it forward.
 
-### Disclaimer
+## Disclaimer
 
 Disclaimer!
 I am in no way affiliated with the network manager developers, please refer to their [official website](https://networkmanager.dev/) for any further comments.
@@ -140,10 +140,10 @@ The methods in question are:
 
 - `get_editor`: create and return a GTK object for displaying in GUI; this one is tricky and will be discussed later in [Editor GUI](#editor-gui) section.
 - `get_capabilities`: return an integer specifying plugin capability flags:
-    - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_NONE`: no known capabilities present.
-    - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_IMPORT`: plugin can import connections from file (`import_from_file` method is enabled).
-    - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_EXPORT`: plugin can export connections to file (`export_to_file` method is enabled).
-    - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_IPV6`: plugin can handle IPv6 addressing.
+  - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_NONE`: no known capabilities present.
+  - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_IMPORT`: plugin can import connections from file (`import_from_file` method is enabled).
+  - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_EXPORT`: plugin can export connections to file (`export_to_file` method is enabled).
+  - `NM_VPN_EDITOR_PLUGIN_CAPABILITY_IPV6`: plugin can handle IPv6 addressing.
 - `import_from_file`: load and verify plugin parameters from a file.
 - `export_to_file`: store plugin parameters in a file.
 - `get_suggested_filename`: suggest a name for the newly-created export file.

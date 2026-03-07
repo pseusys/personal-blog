@@ -1,7 +1,7 @@
 [codespell]
 builtin = clear,rare,informal,usage,code,names
-ignore-words-list = stdio,crate,keypair,uint,jupyter,mut,CA,ws
-skip = *.ipynb
+ignore-words-list = stdio,crate,keypair,uint,jupyter,mut,CA,ws,manuels,gonna
+skip = *.ipynb,.git,build,builddir
 count =
 check-filenames =
 check-hidden =
