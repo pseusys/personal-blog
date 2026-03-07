@@ -1,0 +1,41 @@
+FROM registry.freedesktop.org/networkmanager/networkmanager/fedora/42:tag-caf6673db1a7
+
+# The NM CI image has meson/ninja/gcc but not NM itself or GTK.
+# Install NetworkManager (with nmcli) and the remaining build dependencies.
+RUN dnf install -y --setopt=install_weak_deps=False \
+    NetworkManager \
+    NetworkManager-libnm-devel \
+    gtk3-devel \
+    gtk4-devel \
+    libsecret-devel \
+    clang-tools-extra \
+    dbus-daemon \
+    && dnf clean all
+
+WORKDIR /work
+COPY ExampleVpnPlugin /work/nm_plugin
+
+# Build and install the plugin into system paths.
+WORKDIR /work/nm_plugin
+RUN meson setup build --buildtype=debugoptimized \
+    && meson compile -C build \
+    && meson install -C build
+
+# Verify NetworkManager discovers the plugin.
+# Start D-Bus and NM in the background, then query.
+RUN echo "--- Installed .name file ---" \
+    && cat /usr/lib/NetworkManager/VPN/nm-examplevpn-service.name \
+    && echo "--- D-Bus config ---" \
+    && xmllint /usr/share/dbus-1/system.d/nm-examplevpn-service.conf >/dev/null \
+    && echo "D-Bus config is valid XML" \
+    && echo "--- Starting D-Bus + NetworkManager ---" \
+    && mkdir -p /run/dbus \
+    && dbus-daemon --system --fork \
+    && NetworkManager --no-daemon &  NM_PID=$! \
+    && sleep 2 \
+    && echo "--- Plugin detection ---" \
+    && nmcli general status \
+    && nmcli connection add type vpn con-name test-examplevpn vpn-type examplevpn \
+    && echo "--- VPN connection created successfully! ---" \
+    && nmcli -f NAME,TYPE connection show \
+    && kill $NM_PID 2>/dev/null || true

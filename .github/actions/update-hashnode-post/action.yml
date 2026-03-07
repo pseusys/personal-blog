@@ -1,0 +1,24 @@
+name: Update Hashnode post
+description: Update an existing Hashnode post from a local markdown file. Skips if no post with a matching slug exists.
+
+inputs:
+  file:
+    description: Path to the markdown file (slug is derived from the filename)
+    required: true
+  hashnode-pat:
+    description: Hashnode Personal Access Token
+    required: true
+  hashnode-host:
+    description: Hashnode publication host (e.g. yourblog.hashnode.dev)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Update post on Hashnode
+      shell: bash
+      env:
+        FILE: ${{ inputs.file }}
+        HASHNODE_PAT: ${{ inputs.hashnode-pat }}
+        HASHNODE_HOST: ${{ inputs.hashnode-host }}
+      run: bash "${{ github.action_path }}/update.sh"

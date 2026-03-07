@@ -1,0 +1,36 @@
+name: Update Hashnode posts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "posts/**/*.md"
+
+jobs:
+  update-posts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find changed posts
+        id: changed
+        run: |
+          files=$(git diff --name-only --diff-filter=M HEAD~1 HEAD -- 'posts/**/*.md')
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$files" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Update each changed post
+        if: steps.changed.outputs.files != ''
+        run: |
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "::group::Updating $file"
+            FILE="$file" \
+            HASHNODE_PAT="${{ secrets.HASHNODE_PAT }}" \
+            HASHNODE_HOST="${{ vars.HASHNODE_HOST }}" \
+            bash "$GITHUB_WORKSPACE/.github/actions/update-hashnode-post/update.sh"
+            echo "::endgroup::"
+          done <<< "${{ steps.changed.outputs.files }}"

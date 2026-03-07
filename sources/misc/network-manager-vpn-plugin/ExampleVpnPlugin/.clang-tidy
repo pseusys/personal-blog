@@ -1,0 +1,4 @@
+Checks: >
+  -clang-diagnostic-unused-macros
+
+InheritParentConfig: true
