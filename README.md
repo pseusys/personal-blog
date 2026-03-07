@@ -24,8 +24,8 @@ sources/                        # Companion code for posts
 
 ## Posts
 
-| Post                                                                               | Link                                                                           | Source                                                                       |
-|------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Post | Link | Source |
+| --- | --- | --- |
 | [A custom NetworkManager VPN plugin 101](posts/misc/network-manager-vpn-plugin.md) | [pseusys.hashnode.dev](https://pseusys.hashnode.dev/network-manager-vpn-plugin) | [ExampleVpnPlugin](sources/misc/network-manager-vpn-plugin/ExampleVpnPlugin) |
 
 ## License
