@@ -1,0 +1,23 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install linters
+        run: |
+          sudo npm install -g markdownlint-cli
+          pip install --user codespell
+
+      - name: markdownlint
+        run: make markdownlint
+
+      - name: codespell
+        run: make codespell

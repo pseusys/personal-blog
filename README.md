@@ -18,26 +18,15 @@ sources/                        # Companion code for posts
       Containerfile             # Build & verify with podman
 
 .github/
-  actions/
-    update-hashnode-post/       # Composite action: sync a post to Hashnode
   workflows/
-    update-hashnode.yml         # Auto-update Hashnode on push to main
+    lint.yml                    # Lint Markdown and spelling on push / PR
 ```
 
 ## Posts
 
-| Post                                                                               | Source                                                                       |
-|------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
-| [A custom NetworkManager VPN plugin 101](posts/misc/network-manager-vpn-plugin.md) | [ExampleVpnPlugin](sources/misc/network-manager-vpn-plugin/ExampleVpnPlugin) |
-
-## Hashnode sync
-
-A GitHub Action automatically updates existing Hashnode articles whenever the corresponding Markdown file changes on `main`. New posts are created manually on Hashnode; the action only updates posts that already exist (matched by slug).
-
-**Required setup:**
-
-- Secret `HASHNODE_PAT` — Hashnode Personal Access Token
-- Variable `HASHNODE_HOST` — publication host (e.g. `pseusys.hashnode.dev`)
+| Post                                                                               | Link                                                                           | Source                                                                       |
+|------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [A custom NetworkManager VPN plugin 101](posts/misc/network-manager-vpn-plugin.md) | [pseusys.hashnode.dev](https://pseusys.hashnode.dev/network-manager-vpn-plugin) | [ExampleVpnPlugin](sources/misc/network-manager-vpn-plugin/ExampleVpnPlugin) |
 
 ## License
 
