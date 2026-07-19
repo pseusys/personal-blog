@@ -263,58 +263,41 @@ And the first thing I did was revising the bot architecture.
 Running everything in a single Python process is fine, but not really reliable, so I have set up containerisation.
 
 ```txt
-┌──────────────────────────────────────────────────────────────────┐
-│ VPS                                                              │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │ Collector · Podman · every 5 min                           │  │
-│  │                                                            │  │
-│  │  GeckoTerminal   Binance      Coinalyze   Alternative.me   │  │
-│  │  Solana OHLCV    BTC/ETH      ext OI      Fear & Greed     │  │
-│  │       │             │             │            │           │  │
-│  │       └─────────────┴─────────────┴────────────┘           │  │
-│  │                              │                             │  │
-│  │                   build_dataset.py                         │  │
-│  │                   77 features @ 15 min                     │  │
-│  │                              │                             │  │
-│  │                       ZMQ PUB :5555                        │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                 features message · every 5 min                   │
-│                              │                                   │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │ Trader · Podman · async event loop                         │  │
-│  │                                                            │  │
-│  │     XGB trajectory          BiLSTM · TCN                   │  │
-│  │     + reversal-now          neural models                  │  │
-│  │            │                     │                         │  │
-│  │            └──────────┬──────────┘                         │  │
-│  │                       │                                    │  │
-│  │           Consensus gate (all models must agree)           │  │
-│  │                       │                                    │  │
-│  │           PerfTracker (per-direction derate factor)        │  │
-│  │                       │                                    │  │
-│  │           Heuristics (funding · HL premium · OB)           │  │
-│  │                       │                                    │  │
-│  │             ┌──────────┴──────────┐                        │  │
-│  │       Hyperliquid         OutcomeManager                   │  │
-│  │       perp orders         HIP-4 daily BTC bets             │  │
-│  │             │                     │                        │  │
-│  │             └──────────┬──────────┘                        │  │
-│  │                        │                                   │  │
-│  │                  ZMQ PUB :5556                             │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                          trade events                            │
-│                              │                                   │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │ Reporter · Podman                                          │  │
-│  │                                                            │  │
-│  │               accumulate cycles + events                   │  │
-│  │                              │                             │  │
-│  │               Telegram daily digest · 23:55 UTC            │  │
-│  └────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────┘
+ ┌─ Collector · Podman · every 5 min ────────┐
+ │  GeckoTerminal · Solana DEX OHLCV         │
+ │  Binance · BTC/ETH · funding · OI/LS      │
+ │  Coinalyze · extended OI history          │
+ │  Alternative.me · Fear & Greed            │
+ │                   │                       │
+ │          build_dataset.py                 │
+ │          77 features @ 15 min             │
+ │                   │                       │
+ │             ZMQ PUB :5555                 │
+ └───────────────────────────────────────────┘
+                    │  features · every 5 min
+ ┌─ Trader · Podman · async event loop ──────┐
+ │  XGB trajectory      BiLSTM · TCN         │
+ │  + reversal-now      neural models        │
+ │        │                   │              │
+ │        └──────────┬─────────┘             │
+ │                   │                       │
+ │  Consensus gate (all models must agree)   │
+ │                   │                       │
+ │  PerfTracker (per-direction derate)       │
+ │                   │                       │
+ │  Heuristics (funding · HL premium · OB)   │
+ │                   │                       │
+ │  Hyperliquid · perp orders                │
+ │  OutcomeManager · HIP-4 daily BTC bets    │
+ │                   │                       │
+ │             ZMQ PUB :5556                 │
+ └───────────────────────────────────────────┘
+                    │  trade events
+ ┌─ Reporter · Podman ───────────────────────┐
+ │     accumulate cycles + events            │
+ │                   │                       │
+ │     Telegram daily digest · 23:55 UTC     │
+ └───────────────────────────────────────────┘
 ```
 
 My next priority was getting rid of the legacy time horizons.
@@ -338,28 +321,28 @@ This averaged curve is called PJ (for "Price Jolt").
 A trade is only opened when PJ shows a strong and consistent signal pointing in one direction; one cycle going up and the next going down cancels out and nothing happens.
 
 ```txt
-  Sliding window  ·  last 8 predictions  ·  recent = higher weight
-  ┌─────────────────────────────────────────────────────────────┐
-  │     T-45m  ──>  T-30m  ──>  T-15m  ──>  T (latest)         │
-  └──────────────────────────┬──────────────────────────────────┘
-                             │  weighted avg per future step k
-                    ┌────────┴─────────┐
-                    │       PJ         │  consensus trajectory
-                    └────────┬─────────┘
-                             │
-                    ┌────────┴──────────────┐
-                    │  magnitude ≥ p80?     ├── no ──> [blocked]
-                    └────────┬──────────────┘
-                             │ yes
-                    ┌────────┴─────────────────────┐
-                    │  reversal-now agrees?        ├── no ──> [blocked]
-                    └────────┬─────────────────────┘
-                             │ yes
-                    ┌────────┴──────────────┐
-                    │   monotonicity ok?    ├── no ──> [blocked]
-                    └────────┬──────────────┘
-                             │ yes
-                       [open trade]
+  Sliding window · last 8 predictions · recent first
+  ┌──────────────────────────────────────────────┐
+  │  T-45m  ──>  T-30m  ──>  T-15m  ──>  T now   │
+  └──────────────────┬───────────────────────────┘
+                     │  weighted avg per step k
+        ┌────────────┴───────────┐
+        │          PJ            │  consensus trajectory
+        └────────────┬───────────┘
+                     │
+        ┌────────────┴──────────────┐
+        │  magnitude ≥ p80?         ├── no ──> [blocked]
+        └────────────┬──────────────┘
+                     │ yes
+        ┌────────────┴────────────────────┐
+        │  reversal-now agrees?           ├── no ──> [blocked]
+        └────────────┬────────────────────┘
+                     │ yes
+        ┌────────────┴──────────────┐
+        │   monotonicity ok?        ├── no ──> [blocked]
+        └────────────┬──────────────┘
+                     │ yes
+               [open trade]
 ```
 
 Entry also requires a second independent model — the "reversal-now" classifier — to agree: it is trained specifically to detect whether the current candle is a local price turning point (trough → buy, peak → sell).
