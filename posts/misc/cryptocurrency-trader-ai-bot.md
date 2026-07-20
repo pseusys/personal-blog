@@ -262,42 +262,38 @@ From now on, I was in command.
 And the first thing I did was revising the bot architecture.
 Running everything in a single Python process is fine, but not really reliable, so I have set up containerisation.
 
-```txt
- ┌─ Collector · Podman · every 5 min ────────┐
- │  GeckoTerminal · Solana DEX OHLCV         │
- │  Binance · BTC/ETH · funding · OI/LS      │
- │  Coinalyze · extended OI history          │
- │  Alternative.me · Fear & Greed            │
- │                   │                       │
- │          build_dataset.py                 │
- │          77 features @ 15 min             │
- │                   │                       │
- │             ZMQ PUB :5555                 │
- └───────────────────────────────────────────┘
-                    │  features · every 5 min
- ┌─ Trader · Podman · async event loop ──────┐
- │  XGB trajectory      BiLSTM · TCN         │
- │  + reversal-now      neural models        │
- │        │                   │              │
- │        └──────────┬─────────┘             │
- │                   │                       │
- │  Consensus gate (all models must agree)   │
- │                   │                       │
- │  PerfTracker (per-direction derate)       │
- │                   │                       │
- │  Heuristics (funding · HL premium · OB)   │
- │                   │                       │
- │  Hyperliquid · perp orders                │
- │  OutcomeManager · HIP-4 daily BTC bets    │
- │                   │                       │
- │             ZMQ PUB :5556                 │
- └───────────────────────────────────────────┘
-                    │  trade events
- ┌─ Reporter · Podman ───────────────────────┐
- │     accumulate cycles + events            │
- │                   │                       │
- │     Telegram daily digest · 23:55 UTC     │
- └───────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph VPS["VPS"]
+        subgraph COL["Collector · Podman · every 5 min"]
+            GK["GeckoTerminal\nSolana DEX OHLCV"]
+            BN["Binance\nBTC/ETH · funding · OI/LS"]
+            CO["Coinalyze\nextended OI history"]
+            AM["Alternative.me\nFear & Greed"]
+            GK & BN & CO & AM --> BD["build_dataset.py\n77 features @ 15 min"]
+            BD --> PUB1[["ZMQ PUB :5555"]]
+        end
+
+        PUB1 -->|"features message · every 5 min"| TRD
+
+        subgraph TRD["Trader · Podman · async event loop"]
+            XGB["XGB trajectory\n+ reversal-now"]
+            NN["BiLSTM · TCN\nneural models"]
+            XGB & NN --> CG["Consensus gate\nall models must agree"]
+            CG --> PF["PerfTracker\nper-direction derate factor"]
+            PF --> HU["Heuristics\nfunding · HL premium · order book"]
+            HU --> HL["Hyperliquid\nperp orders"]
+            HU --> OM["OutcomeManager\nHIP-4 daily BTC bets"]
+            HL & OM --> PUB2[["ZMQ PUB :5556"]]
+        end
+
+        PUB2 -->|"trade events"| REP
+
+        subgraph REP["Reporter · Podman"]
+            ACC["accumulate cycles + events"]
+            ACC --> TG["Telegram daily digest · 23:55 UTC"]
+        end
+    end
 ```
 
 My next priority was getting rid of the legacy time horizons.
@@ -320,29 +316,19 @@ Instead of acting on a single one, the last several predictions are kept in a sl
 This averaged curve is called PJ (for "Price Jolt").
 A trade is only opened when PJ shows a strong and consistent signal pointing in one direction; one cycle going up and the next going down cancels out and nothing happens.
 
-```txt
-  Sliding window · last 8 predictions · recent first
-  ┌──────────────────────────────────────────────┐
-  │  T-45m  ──>  T-30m  ──>  T-15m  ──>  T now   │
-  └──────────────────┬───────────────────────────┘
-                     │  weighted avg per step k
-        ┌────────────┴───────────┐
-        │          PJ            │  consensus trajectory
-        └────────────┬───────────┘
-                     │
-        ┌────────────┴──────────────┐
-        │  magnitude ≥ p80?         ├── no ──> [blocked]
-        └────────────┬──────────────┘
-                     │ yes
-        ┌────────────┴────────────────────┐
-        │  reversal-now agrees?           ├── no ──> [blocked]
-        └────────────┬────────────────────┘
-                     │ yes
-        ┌────────────┴──────────────┐
-        │   monotonicity ok?        ├── no ──> [blocked]
-        └────────────┬──────────────┘
-                     │ yes
-               [open trade]
+```mermaid
+flowchart LR
+    subgraph sw["Sliding window · last 8 predictions · recent = higher weight"]
+        P1["T−45m"] --> P2["T−30m"] --> P3["T−15m"] --> P4["T (latest)"]
+    end
+    sw -->|"weighted avg\nper future step k"| PJ["PJ — consensus\ntrajectory"]
+    PJ --> G1{"magnitude ≥\nper-token p80?"}
+    G1 -->|no| BLK([blocked])
+    G1 -->|yes| G2{"reversal-now\nagrees?"}
+    G2 -->|no| BLK
+    G2 -->|yes| G3{"monotonicity\ngate?"}
+    G3 -->|no| BLK
+    G3 -->|yes| OPEN(["open trade"])
 ```
 
 Entry also requires a second independent model — the "reversal-now" classifier — to agree: it is trained specifically to detect whether the current candle is a local price turning point (trough → buy, peak → sell).
