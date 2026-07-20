@@ -204,7 +204,7 @@ Here's the breakdown of features that we established (each one at 15-minute reso
 | Taker order flow | 2 | `sol_taker_buy_ratio`, `btc_taker_buy_ratio` |
 | Macro sentiment | 2 | `fear_greed`, `sol_tvl_pct_7d` |
 | Futures microstructure | 3 | `sol_funding_rate`, `sol_oi_pct_1h`, `sol_ls_ratio` |
-| **Total** | **77** | *(+ 6 sparse-feature absence indicators = 83)* |
+| **Total** | **77** | _(+ 6 sparse-feature absence indicators = 83)_ |
 
 All the features are normalised to be dimensionless: log-returns, ratios, z-scores, or cyclical encodings.
 A model trained on the `BONK` token at $0.00002 and on the `WIF` token at $2.00 sees the same numerical ranges, enabling cross-token generalisation.
