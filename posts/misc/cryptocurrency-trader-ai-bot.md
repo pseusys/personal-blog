@@ -182,29 +182,7 @@ In addition to the data already collected from [Jupiter DEX](https://jup.ag), ne
 That allowed us to collect 77 features at 15-minute resolution, dating back anywhere from a few months to a few years.
 On my request, Claude has prepared scripts for verification and visualisation of the data, collected into Parquet files: now I didn't want to leave anything not tested by hand.
 
-Here's the breakdown of features that we established (each one at 15-minute resolution):
-
-| Group | Count | Examples |
-| --- | :---: | --- |
-| Multi-timeframe returns | 5 | `ret_15m`, `ret_30m`, `ret_1h`, `ret_3h`, `ret_mid` |
-| Volatility | 4 | `vol_3h`, `gk_vol` (Garman-Klass), `trend_frac`, `variance_ratio` |
-| EMA ratios | 3 | `ema5_ratio`, `ema12_ratio`, `ema26_ratio` |
-| Oscillators | 3 | `rsi_14`, `macd`, `macd_hist` |
-| Mean reversion | 2 | `bb_pos` (Bollinger Band z-score), `hl_pos` |
-| Volume | 3 | `vol_rel`, `vol_trend`, `vol_zscore` |
-| Candle structure | 6 | `atr_ratio`, `candle_body`, `upper_wick`, `lower_wick`, `candle_streak`, `candle_oc_ret` |
-| VWAP / range | 2 | `vwap_dev_3h`, `hl_range_pct` |
-| Microstructure | 2 | `amihud_illiq`, `buy_pressure` |
-| Time encoding | 4 | `hour_sin`, `hour_cos`, `dow_sin`, `dow_cos` |
-| Calendar | 6 | `expiry_sin`, `expiry_cos`, `us_session`, `eu_session`, `halving_phase`, `days_to_month_end` |
-| SOL market context | 4 | `sol_ret_1h`, `sol_ret_3h`, `sol_divergence_1h`, `beta_sol` |
-| BTC market context | 5 | `btc_ret_1h`, `btc_ret_3h`, `btc_funding_rate`, `btc_ls_ratio`, `btc_oi_pct_1h` |
-| ETH market context | 3 | `eth_ret_1h`, `eth_ret_3h`, `eth_funding_rate` |
-| Cross-market | 2 | `eth_btc_rel_1h`, `funding_divergence` |
-| Taker order flow | 2 | `sol_taker_buy_ratio`, `btc_taker_buy_ratio` |
-| Macro sentiment | 2 | `fear_greed`, `sol_tvl_pct_7d` |
-| Futures microstructure | 3 | `sol_funding_rate`, `sol_oi_pct_1h`, `sol_ls_ratio` |
-| **Total** | **77** | _(+ 6 sparse-feature absence indicators = 83)_ |
+Those 77 features (each at 15-minute resolution, plus 6 sparse-feature absence indicators for 83 total) fell into a few broad families: price action (multi-timeframe returns, volatility, EMA ratios, oscillators, mean reversion, candle structure), volume and microstructure, time and calendar encodings, and cross-market context pulled in from SOL, BTC and ETH (returns, funding rates, open interest, taker flow) alongside macro sentiment like the Fear & Greed index.
 
 All the features are normalised to be dimensionless: log-returns, ratios, z-scores, or cyclical encodings.
 A model trained on the `BONK` token at $0.00002 and on the `WIF` token at $2.00 sees the same numerical ranges, enabling cross-token generalisation.
